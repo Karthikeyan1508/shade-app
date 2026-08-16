@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
+    "@libsql/client": "^0.17.4",
     "leaflet": "^1.9.4",
     "next": "16.3.1",
     "react": "19.2.8",
@@ -18,7 +18,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^20",
     "@types/react": "^19",

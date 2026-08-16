@@ -35,21 +35,26 @@ async function postToSlack(input: DispatchInput) {
 }
 
 export async function dispatch(input: DispatchInput) {
-  const db = getDb();
+  const db = await getDb();
   await postToSlack(input);
 
-  db.prepare(
-    `INSERT INTO compliance_log (recommendation_id, site_id, ts, event_type, payload_json)
-     VALUES (?, ?, ?, 'recommendation_dispatched', ?)`
-  ).run(input.recommendationId, input.siteId, new Date().toISOString(), JSON.stringify(input));
+  await db.execute({
+    sql: `INSERT INTO compliance_log (recommendation_id, site_id, ts, event_type, payload_json)
+     VALUES (?, ?, ?, 'recommendation_dispatched', ?)`,
+    args: [input.recommendationId, input.siteId, new Date().toISOString(), JSON.stringify(input)]
+  });
 }
 
 export async function logApproval(recommendationId: number, siteId: string, approvedBy = "demo-supervisor") {
-  const db = getDb();
+  const db = await getDb();
   const ts = new Date().toISOString();
-  db.prepare(`UPDATE recommendations SET status = 'approved', approved_ts = ? WHERE id = ?`).run(ts, recommendationId);
-  db.prepare(
-    `INSERT INTO compliance_log (recommendation_id, site_id, ts, event_type, payload_json)
-     VALUES (?, ?, ?, 'recommendation_approved', ?)`
-  ).run(recommendationId, siteId, ts, JSON.stringify({ approvedBy }));
+  await db.execute({
+    sql: `UPDATE recommendations SET status = 'approved', approved_ts = ? WHERE id = ?`,
+    args: [ts, recommendationId]
+  });
+  await db.execute({
+    sql: `INSERT INTO compliance_log (recommendation_id, site_id, ts, event_type, payload_json)
+     VALUES (?, ?, ?, 'recommendation_approved', ?)`,
+    args: [recommendationId, siteId, ts, JSON.stringify({ approvedBy })]
+  });
 }

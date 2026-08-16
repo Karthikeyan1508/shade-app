@@ -22,7 +22,7 @@ export interface SiteRow {
 const ACTIONABLE_TIERS: RiskTier[] = ["Warning", "Danger", "Extreme"];
 
 export async function refreshSite(site: SiteRow) {
-  const db = getDb();
+  const db = await getDb();
   const sunExposed = site.surface_type !== "shaded";
 
   const conditions = await getCurrentConditions(site.lat, site.lng, { sunExposed });
@@ -32,33 +32,34 @@ export async function refreshSite(site: SiteRow) {
   );
 
   const ts = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO readings (site_id, ts, temp_c, rh_pct, wind_kph, solar_wm2, source, is_forecast)
-     VALUES (?,?,?,?,?,?,?,0)`
-  ).run(site.id, ts, conditions.tempC, conditions.rhPct, conditions.windKph ?? null, conditions.solarWm2 ?? null, conditions.source);
+  await db.execute({
+    sql: `INSERT INTO readings (site_id, ts, temp_c, rh_pct, wind_kph, solar_wm2, source, is_forecast)
+     VALUES (?,?,?,?,?,?,?,0)`,
+    args: [site.id, ts, conditions.tempC, conditions.rhPct, conditions.windKph ?? null, conditions.solarWm2 ?? null, conditions.source]
+  });
 
-  db.prepare(
-    `INSERT INTO risk_snapshots (site_id, ts, metric, value, tier) VALUES (?,?,?,?,?)`
-  ).run(site.id, ts, risk.metric, risk.value, risk.tier);
+  await db.execute({
+    sql: `INSERT INTO risk_snapshots (site_id, ts, metric, value, tier) VALUES (?,?,?,?,?)`,
+    args: [site.id, ts, risk.metric, risk.value, risk.tier]
+  });
 
   let recommendationId: number | null = null;
   if (ACTIONABLE_TIERS.includes(risk.tier)) {
-    const shifts = db
-      .prepare(
-        `SELECT c.id as crewId, c.name as crewName, s.task, s.location_type as locationType,
+    const { rows: shiftsRows } = await db.execute({
+      sql: `SELECT c.id as crewId, c.name as crewName, s.task, s.location_type as locationType,
                 s.start_time as startTime, s.end_time as endTime
-         FROM shifts s JOIN crews c ON c.id = s.crew_id WHERE c.site_id = ?`
-      )
-      .all(site.id) as ShiftInfo[];
+         FROM shifts s JOIN crews c ON c.id = s.crew_id WHERE c.site_id = ?`,
+      args: [site.id]
+    });
+    const shifts = shiftsRows as unknown as ShiftInfo[];
 
     const rec = await getRecommendation(site.name, risk, shifts);
 
-    const insert = db
-      .prepare(
-        `INSERT INTO recommendations (site_id, crew_id, ts, tier, action_text, reason, status)
-         VALUES (?,?,?,?,?,?, 'pending')`
-      )
-      .run(site.id, rec.crewId, ts, risk.tier, rec.actionText, rec.reason);
+    const insert = await db.execute({
+      sql: `INSERT INTO recommendations (site_id, crew_id, ts, tier, action_text, reason, status)
+         VALUES (?,?,?,?,?,?, 'pending')`,
+      args: [site.id, rec.crewId, ts, risk.tier, rec.actionText, rec.reason]
+    });
     recommendationId = Number(insert.lastInsertRowid);
 
     await dispatch({
@@ -75,8 +76,9 @@ export async function refreshSite(site: SiteRow) {
 }
 
 export async function refreshAllSites() {
-  const db = getDb();
-  const sites = db.prepare(`SELECT * FROM sites`).all() as SiteRow[];
+  const db = await getDb();
+  const { rows } = await db.execute(`SELECT * FROM sites`);
+  const sites = rows as unknown as SiteRow[];
   const results = [];
   for (const site of sites) {
     try {
@@ -88,3 +90,4 @@ export async function refreshAllSites() {
   }
   return results;
 }
+

@@ -11,15 +11,16 @@ function toCsv(rows: Record<string, unknown>[]): string {
   return lines.join("\n");
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
-  const db = getDb();
-  const rows = db
-    .prepare(
-      `SELECT cl.ts, s.name as site, cl.event_type, cl.payload_json
-       FROM compliance_log cl JOIN sites s ON s.id = cl.site_id
-       ORDER BY cl.ts DESC`
-    )
-    .all() as Record<string, unknown>[];
+  const db = await getDb();
+  const { rows: dbRows } = await db.execute(
+    `SELECT cl.ts, s.name as site, cl.event_type, cl.payload_json
+     FROM compliance_log cl JOIN sites s ON s.id = cl.site_id
+     ORDER BY cl.ts DESC`
+  );
+  const rows = dbRows as unknown as Record<string, unknown>[];
 
   const csv = toCsv(rows);
   return new Response(csv, {

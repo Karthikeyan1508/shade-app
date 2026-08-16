@@ -23,17 +23,19 @@ returns, not on where the data came from.
 
 ## Setup
 
+1. Sign up at [turso.tech](https://turso.tech) (free tier, no card required) and create a database.
+2. Copy `.env.example` to `.env.local` and set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`.
+3. Install dependencies and start the app:
+
 ```bash
 npm install
-cp .env.example .env.local   # fill in whatever keys you have; blank is fine
 npm run dev
 ```
 
 Open http://localhost:3000. Click **Refresh conditions** to pull live data
 (Open-Meteo by default) for the four seeded demo sites, compute risk, and
-generate recommendations. The SQLite database is created and seeded
-automatically on first run at `data/shade.sqlite` (gitignored — each dev gets
-their own local copy from the same `data/sites.seed.json`).
+generate recommendations. The database schema and seed data are automatically
+set up on the first connection using Turso.
 
 ### Getting real keys later (all free)
 
@@ -54,7 +56,7 @@ lib/
   fortyguard.ts             THE PLACEHOLDER — swap real key in here, see TODOs
   openmeteo.ts               free live-data fallback
   risk-engine.ts             Heat Index + WBGT math, pure functions
-  db.ts                      SQLite schema + seeding
+  db.ts                      Turso schema + seeding
   agent.ts                   LLM recommendation (Groq) + rule-based fallback
   dispatcher.ts               Slack post + compliance_log writer
   pipeline.ts                 glues the above together per site

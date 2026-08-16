@@ -1,19 +1,15 @@
-import Database from "better-sqlite3";
-import path from "path";
-import fs from "fs";
+import { createClient, InStatement } from "@libsql/client";
 import seedData from "@/data/sites.seed.json";
 
-const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), "data", "shade.sqlite");
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL || "libsql://placeholder-shade-db.turso.io",
+  authToken: process.env.TURSO_AUTH_TOKEN || "placeholder",
+});
 
-// Ensure the data directory exists (SQLite won't create it for you).
-fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+let initialized: Promise<void> | null = null;
 
-declare global {
-  var __shadeDb: Database.Database | undefined;
-}
-
-function createSchema(db: Database.Database) {
-  db.exec(`
+async function initDb() {
+  await db.executeMultiple(`
     CREATE TABLE IF NOT EXISTS sites (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -82,45 +78,41 @@ function createSchema(db: Database.Database) {
       payload_json TEXT
     );
   `);
-}
 
-function seedIfEmpty(db: Database.Database) {
-  const count = (db.prepare("SELECT COUNT(*) as n FROM sites").get() as { n: number }).n;
-  if (count > 0) return;
+  const { rows } = await db.execute("SELECT COUNT(*) as n FROM sites");
+  if (Number(rows[0].n) > 0) return;
 
-  const insertSite = db.prepare(
-    `INSERT INTO sites (id, name, lat, lng, surface_type, jurisdiction) VALUES (?,?,?,?,?,?)`
-  );
-  const insertCrew = db.prepare(
-    `INSERT INTO crews (id, site_id, name, workload_category, acclimatized) VALUES (?,?,?,?,?)`
-  );
-  const insertShift = db.prepare(
-    `INSERT INTO shifts (crew_id, task, location_type, start_time, end_time) VALUES (?,?,?,?,?)`
-  );
-
-  const insertAll = db.transaction(() => {
-    for (const site of seedData.sites) {
-      insertSite.run(site.id, site.name, site.lat, site.lng, site.surface_type, site.jurisdiction);
-      for (const crew of site.crews) {
-        insertCrew.run(crew.id, site.id, crew.name, crew.workload_category, crew.acclimatized ? 1 : 0);
-        for (const shift of crew.shifts) {
-          insertShift.run(crew.id, shift.task, shift.location_type, shift.start, shift.end);
-        }
+  const batchStatements: InStatement[] = [];
+  for (const site of seedData.sites) {
+    batchStatements.push({
+      sql: `INSERT INTO sites (id, name, lat, lng, surface_type, jurisdiction) VALUES (?,?,?,?,?,?)`,
+      args: [site.id, site.name, site.lat, site.lng, site.surface_type, site.jurisdiction],
+    });
+    for (const crew of site.crews) {
+      batchStatements.push({
+        sql: `INSERT INTO crews (id, site_id, name, workload_category, acclimatized) VALUES (?,?,?,?,?)`,
+        args: [crew.id, site.id, crew.name, crew.workload_category, crew.acclimatized ? 1 : 0],
+      });
+      for (const shift of crew.shifts) {
+        batchStatements.push({
+          sql: `INSERT INTO shifts (crew_id, task, location_type, start_time, end_time) VALUES (?,?,?,?,?)`,
+          args: [crew.id, shift.task, shift.location_type, shift.start, shift.end],
+        });
       }
     }
-  });
-  insertAll();
+  }
+
+  if (batchStatements.length > 0) {
+    await db.batch(batchStatements, "write");
+  }
 }
 
-function getDb(): Database.Database {
-  if (!global.__shadeDb) {
-    const db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
-    createSchema(db);
-    seedIfEmpty(db);
-    global.__shadeDb = db;
+export async function getDb() {
+  if (!initialized) {
+    initialized = initDb();
   }
-  return global.__shadeDb;
+  await initialized;
+  return db;
 }
 
 export default getDb;
