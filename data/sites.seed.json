@@ -1,0 +1,80 @@
+{
+  "sites": [
+    {
+      "id": "site-jebel-ali",
+      "name": "Jebel Ali Logistics Yard",
+      "lat": 24.9857,
+      "lng": 55.0273,
+      "surface_type": "asphalt",
+      "jurisdiction": "UAE_MOHRE",
+      "crews": [
+        {
+          "id": "crew-ja-1",
+          "name": "Crew 4 — Outdoor Staging",
+          "workload_category": "heavy",
+          "acclimatized": true,
+          "shifts": [
+            { "task": "Pallet staging (outdoor)", "location_type": "outdoor", "start": "06:00", "end": "14:00" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "site-dic-warehouse",
+      "name": "Dubai Industrial City Warehouse",
+      "lat": 24.8672,
+      "lng": 55.1710,
+      "surface_type": "concrete",
+      "jurisdiction": "UAE_MOHRE",
+      "crews": [
+        {
+          "id": "crew-dic-1",
+          "name": "Dock Crew A",
+          "workload_category": "moderate",
+          "acclimatized": true,
+          "shifts": [
+            { "task": "Loading dock ops", "location_type": "outdoor", "start": "07:00", "end": "15:00" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "site-alquoz",
+      "name": "Al Quoz Distribution Center",
+      "lat": 25.1367,
+      "lng": 55.2262,
+      "surface_type": "asphalt",
+      "jurisdiction": "UAE_MOHRE",
+      "crews": [
+        {
+          "id": "crew-aq-1",
+          "name": "Last-Mile Drivers",
+          "workload_category": "light",
+          "acclimatized": false,
+          "shifts": [
+            { "task": "Delivery route prep", "location_type": "outdoor", "start": "08:00", "end": "16:00" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "site-phoenix",
+      "name": "Phoenix Distribution Hub",
+      "lat": 33.4484,
+      "lng": -112.0740,
+      "surface_type": "asphalt",
+      "jurisdiction": "OSHA_PROPOSED",
+      "crews": [
+        {
+          "id": "crew-phx-1",
+          "name": "Yard Crew 2",
+          "workload_category": "heavy",
+          "acclimatized": false,
+          "shifts": [
+            { "task": "Outdoor pallet staging", "location_type": "outdoor", "start": "06:00", "end": "14:00" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "OSHA_PROPOSED": {
+    "label": "US OSHA (proposed federal rule)",
+    "metric": "heat_index_f",
+    "tiers": [
+      { "min": 80, "tier": "Caution" },
+      { "min": 90, "tier": "Warning" },
+      { "min": 103, "tier": "Danger" },
+      { "min": 125, "tier": "Extreme" }
+    ]
+  },
+  "UAE_MOHRE": {
+    "label": "UAE MoHRE midday ban",
+    "metric": "wbgt_c",
+    "tiers": [
+      { "min": 27, "tier": "Caution" },
+      { "min": 29, "tier": "Warning" },
+      { "min": 31, "tier": "Danger" },
+      { "min": 33, "tier": "Extreme" }
+    ],
+    "fixedWindow": {
+      "startMonthDay": "06-15",
+      "endMonthDay": "09-15",
+      "startTime": "12:30",
+      "endTime": "15:00",
+      "note": "Outdoor work in direct sun is banned in this window regardless of computed tier."
+    }
+  },
+  "CUSTOM_WBGT": {
+    "label": "Custom WBGT reference (NIOSH/ACGIH-style)",
+    "metric": "wbgt_c",
+    "tiers": [
+      { "min": 27, "tier": "Caution" },
+      { "min": 29, "tier": "Warning" },
+      { "min": 31, "tier": "Danger" },
+      { "min": 33, "tier": "Extreme" }
+    ]
+  }
+}

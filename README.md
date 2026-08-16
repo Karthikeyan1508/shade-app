@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shade — Enterprise Heat-Safety Agent
 
-## Getting Started
+FortyGuard Hackathon — Theme 3: Industrial & Enterprise.
 
-First, run the development server:
+An AI agent that turns hyperlocal temperature data into automatic, auditable
+heat-safety decisions for outdoor/non-climate-controlled industrial workforces.
+
+## Status: buildable today, zero API keys required
+
+Every external dependency has a free fallback baked in, so you can `npm run dev`
+right now with an empty `.env.local` and the whole pipeline works end to end:
+
+| Dependency | If key is set | If key is NOT set |
+|---|---|---|
+| FortyGuard Temperature API | real hyperlocal data | falls back to **Open-Meteo** (free, no key, real live weather) |
+| Groq (LLM agent) | real LLM tool-calling recommendation | falls back to a **deterministic rule-based recommender** |
+| Slack webhook | posts the action card to Slack | logs it to the server console instead |
+
+This means: **start building today**. Swap in the real FortyGuard key the moment
+hackathon registration gives you one — nothing else in the app needs to change,
+because everything downstream only depends on the `Conditions` shape `lib/fortyguard.ts`
+returns, not on where the data came from.
+
+## Setup
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in whatever keys you have; blank is fine
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Click **Refresh conditions** to pull live data
+(Open-Meteo by default) for the four seeded demo sites, compute risk, and
+generate recommendations. The SQLite database is created and seeded
+automatically on first run at `data/shade.sqlite` (gitignored — each dev gets
+their own local copy from the same `data/sites.seed.json`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Getting real keys later (all free)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **FortyGuard** — claim your hackathon trial API key at registration, then
+   fill in `FORTYGUARD_API_KEY` and confirm `FORTYGUARD_BASE_URL` + the two
+   `TODO`s in `lib/fortyguard.ts` against FortyGuard's real API docs.
+2. **Groq** (optional, upgrades the agent from rule-based to a real LLM) —
+   free key at https://console.groq.com/keys, no card required.
+3. **Slack** (optional, for real action-card notifications) — create a free
+   workspace, add an Incoming Webhook, paste the URL into `SLACK_WEBHOOK_URL`.
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+```
+config/jurisdictions.json   heat-safety rule thresholds per jurisdiction (OSHA/UAE/custom)
+data/sites.seed.json        demo sites + synthetic crews & shifts (real coordinates)
+lib/
+  fortyguard.ts             THE PLACEHOLDER — swap real key in here, see TODOs
+  openmeteo.ts               free live-data fallback
+  risk-engine.ts             Heat Index + WBGT math, pure functions
+  db.ts                      SQLite schema + seeding
+  agent.ts                   LLM recommendation (Groq) + rule-based fallback
+  dispatcher.ts               Slack post + compliance_log writer
+  pipeline.ts                 glues the above together per site
+app/
+  api/                       REST routes (sites, risk, recommendations, ingest, export)
+  page.tsx                   dashboard (map + action feed)
+  components/                MapView (Leaflet), ActionFeed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Team workflow (Karthi + Kavya)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Branches: `main` (always working/demoable) ← `dev/karthi`, `dev/kavya`.
 
-## Deploy on Vercel
+**Module split (minimizes merge conflicts — mostly different folders):**
+- **Karthi — data & logic**: `lib/fortyguard.ts`, `lib/risk-engine.ts`, `lib/agent.ts`,
+  `lib/dispatcher.ts`, `lib/pipeline.ts`, `lib/db.ts`, `app/api/**`, the real
+  FortyGuard integration once the key arrives.
+- **Kavya — experience**: `app/page.tsx`, `app/components/**`, styling, the
+  Scenario Runner / demo-walkthrough UX, the compliance export view.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Swap freely if it fits your strengths better — the point is each person owns
+folders the other rarely touches.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Daily loop:**
+```bash
+git checkout dev/<you>
+git pull origin main --rebase     # start each day on top of latest main
+# ... work, small commits ...
+git push origin dev/<you>
+# open a PR into main; merge same-day, don't let branches drift more than a day
+```
+
+Keep PRs small and frequent (once a feature/module is working, not once the
+whole app is done) — with two people on a tight deadline, a 3-day-old branch
+is the single biggest risk to your schedule, not a lack of features.
+
+## Next steps
+
+- [ ] Wire the real FortyGuard key in once you have it (see TODOs in `lib/fortyguard.ts`)
+- [ ] Add a Scenario Runner (`/api/scenario/step`) that replays a pre-fetched
+      sequence on a compressed timeline for the live demo — don't rely on
+      real wall-clock time crossing a threshold while judges watch
+- [ ] Add a timeline component showing shifts + risk overlay (currently only
+      the map + action feed exist)
+- [ ] PDF export (CSV export already works at `/api/compliance/export`)
+- [ ] Basic auth if you deploy a public link (skip entirely if demoing locally/by video)
