@@ -28,6 +28,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Initial data load. Deliberately fire-and-forget: this is the standard
+    // effect-driven fetch pattern, not an accidental synchronous setState.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSites();
     loadRecommendations();
   }, [loadSites, loadRecommendations]);

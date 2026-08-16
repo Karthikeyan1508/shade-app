@@ -9,7 +9,6 @@ const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), "data", "shade.s
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 declare global {
-  // eslint-disable-next-line no-var
   var __shadeDb: Database.Database | undefined;
 }
 
